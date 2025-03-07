@@ -112,7 +112,7 @@ function App() {
   return (
     <SettingsProvider>
       <BrowserRouter>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors overflow-y-auto">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
           <Header />
           {loading ? (
             <div className="flex items-center justify-center min-h-screen">
