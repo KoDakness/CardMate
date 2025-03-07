@@ -25,20 +25,28 @@ export default function ManagePage({ players, courses, onPlayersChange, onCourse
   const addPlayer = async () => {
     if (newPlayerName.trim()) {
       try {
+        if (!user?.id) {
+          throw new Error('You must be signed in to add players');
+        }
+
         const newPlayer = {
           id: crypto.randomUUID(),
-          user_id: user?.id,
+          user_id: user.id,
           name: newPlayerName.trim()
         };
 
-        const { error } = await supabase
+        const { data: player, error } = await supabase
           .from('players')
           .insert(newPlayer);
 
         if (error) throw error;
+        
+        // Update local state with the new player
+        onPlayersChange([...players, { ...newPlayer, scores: [], total: 0, relativeToPar: 0 }]);
       } catch (error) {
-        console.error('Error adding player:', error);
-        alert('Failed to add player. Please try again.');
+        const message = error instanceof Error ? error.message : 'Failed to add player. Please try again.';
+        console.error('Error adding player:', message);
+        alert(message);
       }
       setNewPlayerName('');
     }
