@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import Header from './components/Header';
@@ -13,6 +13,17 @@ import { useState } from 'react';
 import type { Player, Course } from './types';
 import { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
+
+function RequireAuth({ children }: { children: JSX.Element }) {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
 
 function App() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -122,43 +133,57 @@ function App() {
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={
-              <ScorePage 
-                courses={courses} 
-                selectedCourseId={selectedCourseId}
-                onCourseSelect={setSelectedCourseId}
-                availablePlayers={players}
-                activePlayers={activePlayers}
-                onActivePlayersChange={setActivePlayers}
-              />
+              <RequireAuth>
+                <ScorePage 
+                  courses={courses} 
+                  selectedCourseId={selectedCourseId}
+                  onCourseSelect={setSelectedCourseId}
+                  availablePlayers={players}
+                  activePlayers={activePlayers}
+                  onActivePlayersChange={setActivePlayers}
+                />
+              </RequireAuth>
             } />
             <Route 
               path="/scorecard" 
               element={
-                selectedCourse ? (
-                  <ScorecardPage players={activePlayers} course={selectedCourse} />
-                ) : (
-                  <Navigate to="/" replace />
-                )
+                <RequireAuth>
+                  {selectedCourse ? (
+                    <ScorecardPage players={activePlayers} course={selectedCourse} />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )}
+                </RequireAuth>
               } 
             />
             <Route 
               path="/manage" 
               element={
-                <ManagePage 
-                  players={players}
-                  courses={courses}
-                  onPlayersChange={setPlayers}
-                  onCoursesChange={setCourses}
-                />
+                <RequireAuth>
+                  <ManagePage 
+                    players={players}
+                    courses={courses}
+                    onPlayersChange={setPlayers}
+                    onCoursesChange={setCourses}
+                  />
+                </RequireAuth>
               } 
             />
             <Route 
               path="/history" 
-              element={<HistoryPage />} 
+              element={
+                <RequireAuth>
+                  <HistoryPage />
+                </RequireAuth>
+              } 
             />
             <Route 
               path="/settings" 
-              element={<SettingsPage />} 
+              element={
+                <RequireAuth>
+                  <SettingsPage />
+                </RequireAuth>
+              } 
             />
           </Routes>
           )}

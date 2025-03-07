@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
 
 export default function AuthPage() {
@@ -11,6 +11,8 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ export default function AuthPage() {
       } else {
         await signIn(email, password);
       }
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
