@@ -13,6 +13,7 @@ import { useState } from 'react';
 import type { Player, Course } from './types';
 import { useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
+import { supabase } from './lib/supabase';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { user } = useAuth();
@@ -39,22 +40,26 @@ function App() {
     const fetchData = async () => {
       try {
         if (user) {
-          const { supabase } = await import('./lib/supabase');
-          const { data: coursesData } = await supabase
+          const { data: coursesData, error: coursesError } = await supabase
             .from('courses')
             .select('*')
             .eq('user_id', user.id);
+
+          if (coursesError) throw coursesError;
           
-          const { data: playersData } = await supabase
+          const { data: playersData, error: playersError } = await supabase
             .from('players')
             .select('*')
             .eq('user_id', user.id);
+
+          if (playersError) throw playersError;
           
           setCourses(coursesData || []);
           setPlayers(playersData?.map(p => ({ ...p, scores: [], total: 0, relativeToPar: 0 })) || []);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        const message = error instanceof Error ? error.message : 'Failed to fetch data';
+        console.error('Error fetching data:', message);
       } finally {
         setLoading(false);
       }
@@ -62,8 +67,6 @@ function App() {
 
     if (user) {
       const setupSubscriptions = async () => {
-        const { supabase } = await import('./lib/supabase');
-
         const coursesSubscription = supabase
           .channel('courses_changes')
           .on('postgres_changes', 
@@ -74,8 +77,14 @@ function App() {
               filter: `user_id=eq.${user.id}`
             },
             (payload) => {
-              if (payload.eventType === 'DELETE') {
+              if (payload.eventType === 'INSERT') {
+                setCourses(current => [...current, payload.new as Course]);
+              } else if (payload.eventType === 'DELETE') {
                 setCourses(current => current.filter(c => c.id !== payload.old.id));
+              } else if (payload.eventType === 'UPDATE') {
+                setCourses(current => current.map(c => 
+                  c.id === payload.new.id ? { ...c, ...payload.new } : c
+                ));
               } else {
                 fetchData();
               }
