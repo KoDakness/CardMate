@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Flag, Ruler, UserPlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flag, Ruler, UserPlus, RotateCcw } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import PlayerScore from '../components/PlayerScore';
 import Logo from '../components/Logo';
@@ -25,6 +25,11 @@ export default function ScorePage({
   const [currentHole, setCurrentHole] = useState(1);
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
   const navigate = useNavigate();
+  
+  const resetRound = () => {
+    setCurrentHole(1);
+    onActivePlayersChange([]);
+  };
 
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
 
@@ -193,7 +198,14 @@ export default function ScorePage({
           </div>
         ) : (
           <>
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <button
+                onClick={resetRound}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl transition-colors shadow-sm"
+              >
+                <RotateCcw className="w-5 h-5" />
+                New Round
+              </button>
               <button
                 onClick={() => setIsAddingPlayer(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-cardmate-green text-white hover:bg-cardmate-burgundy rounded-xl transition-colors shadow-sm"

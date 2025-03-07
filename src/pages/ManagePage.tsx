@@ -105,12 +105,24 @@ export default function ManagePage({ players, courses, onPlayersChange, onCourse
 
   const updateCourse = async (courseId: string, updates: Partial<Course>) => {
     try {
-      const { error } = await supabase
+      const { data: updatedCourse, error } = await supabase
         .from('courses')
         .update(updates)
-        .eq('id', courseId);
+        .eq('id', courseId)
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Update local state
+      onCoursesChange(courses.map(course => 
+        course.id === courseId ? { ...course, ...updates } : course
+      ));
+      
+      // Clear editing state if we're updating the name
+      if (updates.name) {
+        setEditingCourse(null);
+      }
     } catch (error) {
       console.error('Error updating course:', error);
       alert('Failed to update course. Please try again.');
@@ -119,9 +131,13 @@ export default function ManagePage({ players, courses, onPlayersChange, onCourse
 
   const addCourse = async (courseData?: Course) => {
     try {
+      if (!user?.id) {
+        throw new Error('You must be signed in to add courses');
+      }
+
       const newCourse = {
         id: courseData?.id || crypto.randomUUID(),
-        user_id: user?.id,
+        user_id: user.id,
         name: courseData?.name || 'New Course',
         layout: courseData?.layout || '18',
         holes: courseData?.holes || Array.from({ length: 18 }, (_, i) => ({
@@ -132,16 +148,23 @@ export default function ManagePage({ players, courses, onPlayersChange, onCourse
           }))
       };
 
-      const { error } = await supabase
+      const { data: course, error } = await supabase
         .from('courses')
-        .insert(newCourse);
+        .insert(newCourse)
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Update local state with the new course
+      onCoursesChange([...courses, newCourse]);
+      
       setEditingCourse(newCourse.id);
       setExpandedCourse(newCourse.id);
     } catch (error) {
-      console.error('Error adding course:', error);
-      alert('Failed to add course. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to add course. Please try again.';
+      console.error('Error adding course:', message);
+      alert(message);
     }
   };
 
